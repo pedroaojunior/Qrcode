@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Controle | SAELCE</title>
+    <!-- Fontes Modernas High-Tech: Plus Jakarta Sans e JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Cliente Oficial do Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-base: #0B0F19;
+            --bg-card: rgba(17, 24, 39, 0.75);
+            --border-card: rgba(255, 255, 255, 0.08);
+            --border-card-hover: rgba(255, 255, 255, 0.16);
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --accent-almoco: #10B981;
+            --accent-cerveja: #F59E0B;
+            --accent-blue: #3B82F6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.6) 0px, transparent 100%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            text-align: center;
+            min-height: 100vh;
+        }
+
+        /* Cabeçalho */
+        .header-container {
+            margin-bottom: 35px;
+        }
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(37, 99, 235, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.28);
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #60A5FA;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 14px;
+        }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10B981;
+            border-radius: 50%;
+            box-shadow: 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse-ring 2s infinite;
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        h1 {
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            color: var(--text-primary);
+            margin: 0 0 8px 0;
+        }
+        p.subtitle {
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        /* Dashboard e Cards */
+        .dashboard {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            margin: 35px auto;
+            max-width: 900px;
+            flex-wrap: wrap;
+        }
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 28px 30px;
+            border-radius: 18px;
+            border: 1px solid var(--border-card);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            flex: 1;
+            min-width: 260px;
+            max-width: 420px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+            text-align: left;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            border-color: var(--border-card-hover);
+            box-shadow: 0 16px 36px -5px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+        .card.almoco::before {
+            background: linear-gradient(90deg, #10B981, #06B6D4);
+        }
+        .card.cerveja::before {
+            background: linear-gradient(90deg, #F59E0B, #EF4444);
+        }
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .card-label {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+        }
+        .card-icon {
+            font-size: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .number {
+            font-size: 54px;
+            font-weight: 800;
+            margin: 10px 0;
+            line-height: 1;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: -0.02em;
+        }
+        .card.almoco .number {
+            color: var(--accent-almoco);
+            text-shadow: 0 0 25px rgba(16, 185, 129, 0.35);
+        }
+        .card.cerveja .number {
+            color: var(--accent-cerveja);
+            text-shadow: 0 0 25px rgba(245, 158, 11, 0.35);
+        }
+        .card-foot {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        /* Botões de Ação */
+        .actions-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 25px auto 14px auto;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+            color: white;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: rgba(30, 41, 59, 0.75);
+            color: #CBD5E1;
+            border-color: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+        }
+        .btn-secondary:hover {
+            background: rgba(51, 65, 85, 0.9);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.16);
+            transform: translateY(-1px);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .status-atualizacao {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 10px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Tabela de Registros High-Tech */
+        .table-container {
+            max-width: 900px;
+            margin: 35px auto 60px auto;
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 24px 28px;
+            border-radius: 18px;
+            border: 1px solid var(--border-card);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            text-align: left;
+            overflow-x: auto;
+        }
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 16px;
+        }
+        .table-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: -0.01em;
+        }
+        #contador-registros {
+            color: #38BDF8;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.22);
+            padding: 5px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .tabela-registros {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 13.5px;
+        }
+        .tabela-registros th {
+            background: rgba(15, 23, 42, 0.65);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 11px;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .tabela-registros th:first-child {
+            border-top-left-radius: 8px;
+        }
+        .tabela-registros th:last-child {
+            border-top-right-radius: 8px;
+        }
+        .tabela-registros td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: #CBD5E1;
+            vertical-align: middle;
+        }
+        .tabela-registros tr:last-child td {
+            border-bottom: none;
+        }
+        .tabela-registros tbody tr {
+            transition: background-color 0.15s ease;
+        }
+        .tabela-registros tbody tr:hover {
+            background-color: rgba(30, 41, 59, 0.45);
+        }
+        .badge-id {
+            background: rgba(148, 163, 184, 0.1);
+            color: #94A3B8;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid rgba(148, 163, 184, 0.15);
+        }
+        .codigo-val {
+            font-family: 'JetBrains Mono', monospace;
+            color: #F8FAFC;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
+        .data-val {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+            font-size: 12.5px;
+        }
+        .btn-excluir {
+            background: rgba(239, 68, 68, 0.12);
+            color: #F87171;
+            border: 1px solid rgba(239, 68, 68, 0.28);
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        .btn-excluir:hover {
+            background: #EF4444;
+            color: white;
+            border-color: #EF4444;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+            transform: translateY(-1px);
+        }
+        .btn-excluir:disabled {
+            background: rgba(148, 163, 184, 0.1);
+            color: #64748B;
+            border-color: transparent;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .vazio {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 35px 20px;
+        }
+
+        /* Estilos de Impressão (modo limpo econômico) */
+        @media print { 
+            body {
+                background: white !important;
+                color: black !important;
+                padding: 10px !important;
+            }
+            .header-badge, .pulse-dot { display: none !important; }
+            h1 { color: black !important; }
+            p.subtitle { color: #555 !important; }
+            .card {
+                background: white !important;
+                border: 1px solid #ccc !important;
+                box-shadow: none !important;
+            }
+            .card.almoco .number { color: #059669 !important; text-shadow: none !important; }
+            .card.cerveja .number { color: #D97706 !important; text-shadow: none !important; }
+            .actions-row, .status-atualizacao, .btn-excluir, .col-acao { 
+                display: none !important; 
+            }
+            .table-container { 
+                box-shadow: none !important; 
+                background: white !important; 
+                border: 1px solid #ddd !important;
+                padding: 0 !important; 
+                margin: 20px auto !important; 
+                max-width: 100% !important; 
+            }
+            .table-header h2 { color: black !important; }
+            #contador-registros { border: 1px solid #ccc !important; color: #333 !important; }
+            .tabela-registros th {
+                background: #f1f5f9 !important;
+                color: #333 !important;
+                border-bottom: 2px solid #ccc !important;
+            }
+            .tabela-registros td {
+                color: black !important;
+                border-bottom: 1px solid #eee !important;
+            }
+            .badge-id {
+                background: #f1f5f9 !important;
+                color: #333 !important;
+                border: 1px solid #ccc !important;
+            }
+            .codigo-val { color: black !important; }
+            .data-val { color: #555 !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-container">
+        <div class="header-badge">
+            <span class="pulse-dot"></span>
+            Painel Executivo • Tempo Real
+        </div>
+        <h1>📊 Painel de Consumo em Tempo Real</h1>
+        <p class="subtitle">Confraternização de Fim de Ano - SAELCE</p>
+    </div>
+
+    <div class="dashboard">
+        <div class="card almoco">
+            <div class="card-top">
+                <span class="card-label">Almoços Liberados</span>
+                <span class="card-icon">🍽️</span>
+            </div>
+            <div class="number" id="total-almoco">...</div>
+            <div class="card-foot">⚡ Total de acessos validados</div>
+        </div>
+        <div class="card cerveja">
+            <div class="card-top">
+                <span class="card-label">Cervejas Consumidas</span>
+                <span class="card-icon">🍺</span>
+            </div>
+            <div class="number" id="total-cerveja">...</div>
+            <div class="card-foot">⚡ Total de retiradas no bar</div>
+        </div>
+    </div>
+
+    <div class="actions-row">
+        <button class="btn btn-primary" onclick="atualizarTotais()">🔄 Atualizar Agora</button>
+        <button class="btn btn-secondary" onclick="window.print()">🖨️ Encerrar e Imprimir</button>
+    </div>
+
+    <div class="status-atualizacao" id="ultimo-status">Carregando dados...</div>
+
+    <!-- TABELA DE REGISTROS DO BANCO (Tabela 'almoco') -->
+    <div class="table-container">
+        <div class="table-header">
+            <h2>📋 Registros de Almoço (Banco de Dados)</h2>
+            <span id="contador-registros">Carregando...</span>
+        </div>
+
+        <table class="tabela-registros">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">ID</th>
+                    <th>Código de Barras / Crachá</th>
+                    <th>Data / Hora do Registro</th>
+                    <th class="col-acao" style="text-align: center; width: 120px;">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-corpo">
+                <tr>
+                    <td colspan="4" class="vazio">Carregando registros...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // ========================================================
+        // 1. CONFIGURAÇÃO DO SUPABASE
+        // Substitua pelas suas chaves (as mesmas do index.html)
+        // ========================================================
+        const SUPABASE_URL = "https://xgbhzhkvfagpmyhmzwuk.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnYmh6aGt2ZmFncG15aG16d3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMTcsImV4cCI6MjA5NjEwNTIxN30.ROMcYDStFJVUlZzFVTEizu8xXTeQjPF0IZDJeRe4s_8";
+
+
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ========================================================
+        // 2. FUNÇÃO DE CONTAGEM OTIMIZADA
+        // ========================================================
+        async function atualizarTotais() {
+            const statusElem = document.getElementById("ultimo-status");
+            statusElem.innerText = "Atualizando contagem...";
+
+            try {
+                // Contagem ultra-leve da tabela 'almoco' (HEAD query)
+                const { count: almocoCount, error: errAlmoco } = await _supabase
+                    .from('almoco')
+                    .select('*', { count: 'exact', head: true });
+
+                if (errAlmoco) throw errAlmoco;
+
+                // Contagem ultra-leve da tabela 'cerveja' (HEAD query)
+                const { count: cervejaCount, error: errCerveja } = await _supabase
+                    .from('cerveja')
+                    .select('*', { count: 'exact', head: true });
+
+                if (errCerveja) throw errCerveja;
+
+                // Atualiza na tela os valores retornados
+                document.getElementById("total-almoco").innerText = almocoCount ?? 0;
+                document.getElementById("total-cerveja").innerText = cervejaCount ?? 0;
+
+                const horaAtual = new Date().toLocaleTimeString('pt-BR');
+                statusElem.innerText = `● Sistema sincronizado às ${horaAtual} (Próxima em 1 min)`;
+
+                // Atualiza também a tabela de registros
+                await carregarRegistros();
+
+            } catch (error) {
+                console.error("Erro ao buscar contagens:", error);
+                statusElem.innerText = "❌ Erro ao atualizar os totais. Verifique a conexão.";
+            }
+        }
+
+        // ========================================================
+        // 3. FUNÇÕES DA TABELA DE REGISTROS (TABELA 'almoco')
+        // ========================================================
+        function formatarData(dataIso) {
+            if (!dataIso) return '-';
+            try {
+                const data = new Date(dataIso);
+                if (isNaN(data.getTime())) return dataIso;
+                return data.toLocaleString('pt-BR');
+            } catch (e) {
+                return dataIso;
+            }
+        }
+
+        async function carregarRegistros() {
+            const tbody = document.getElementById("tabela-corpo");
+            const contador = document.getElementById("contador-registros");
+
+            try {
+                const { data: registros, error } = await _supabase
+                    .from('almoco')
+                    .select('*')
+                    .order('id', { ascending: false });
+
+                if (error) throw error;
+
+                if (!registros || registros.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="vazio">Nenhum registro encontrado no banco de dados.</td></tr>';
+                    contador.innerText = "0 registros";
+                    return;
+                }
+
+                contador.innerText = `${registros.length} registro(s) no total`;
+
+                tbody.innerHTML = registros.map(reg => `
+                    <tr id="linha-${reg.id}">
+                        <td><span class="badge-id">#${reg.id}</span></td>
+                        <td><span class="codigo-val">${reg.codigo_barras || '-'}</span></td>
+                        <td><span class="data-val">${formatarData(reg.criado_em)}</span></td>
+                        <td class="col-acao" style="text-align: center;">
+                            <button class="btn-excluir" onclick="excluirRegistro(${reg.id})">🗑️ Excluir</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error("Erro ao carregar registros:", error);
+                tbody.innerHTML = '<tr><td colspan="4" class="vazio" style="color: #ef4444;">❌ Erro ao carregar registros do banco.</td></tr>';
+                contador.innerText = "Erro ao carregar";
+            }
+        }
+
+        async function excluirRegistro(id) {
+            if (!confirm(`Deseja realmente excluir o registro ID #${id}?`)) {
+                return;
+            }
+
+            const btn = event?.target;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = "Excluindo...";
+            }
+
+            try {
+                const { data, error } = await _supabase
+                    .from('almoco')
+                    .delete()
+                    .eq('id', id)
+                    .select();
+
+                if (error) {
+                    alert("Erro ao excluir registro: " + (error.message || JSON.stringify(error)));
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerText = "🗑️ Excluir";
+                    }
+                    return;
+                }
+
+                // Supabase com RLS ativo que bloqueia anon DELETE retorna array vazio sem erro
+                if (data && data.length === 0) {
+                    alert("⚠️ Atenção: O registro não pôde ser excluído no banco de dados.\n\nMotivo comum: O Supabase bloqueou a exclusão devido a políticas de segurança (RLS). Para permitir, acesse o painel do Supabase e adicione uma política permitindo DELETE para 'anon' na tabela 'almoco'.");
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerText = "🗑️ Excluir";
+                    }
+                    return;
+                }
+
+                // Atualiza contadores e tabela
+                await atualizarTotais();
+
+            } catch (err) {
+                console.error("Erro ao excluir:", err);
+                alert("Erro ao excluir o registro. Verifique a conexão com o banco.");
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "🗑️ Excluir";
+                }
+            }
+        }
+
+        // Carrega imediatamente ao abrir a página
+        atualizarTotais();
+
+        // Atualiza AUTOMATICAMENTE a cada 1 minuto (60.000 ms)
+        setInterval(atualizarTotais, 60000);
+    </script>
+</body>
+</html>

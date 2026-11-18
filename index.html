@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Controle de Almoço</title>
+<!-- Leitor de QR Code -->
 <script src="https://unpkg.com/html5-qrcode"></script>
+<!-- Cliente Oficial do Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 body{font-family:Arial,sans-serif;background:#f4f4f9;text-align:center;margin:0;padding:20px}
 h2{margin-top:10px}
@@ -17,8 +21,15 @@ button{padding:14px 20px;border:none;border-radius:8px;font-size:18px;color:#fff
 .processando{background:#fff3cd;color:#856404}
 </style>
 </head>
+<!-- Botão para ir para o Relatório -->
+<!--<div style="margin-top: 30px;">
+//  <a href="relatorio.html" target="_blank" style="color: #666; text-decoration: none; font-size: 14px;">
+    📊 Abrir Relatório / Fechamento
+  </a>
+//</div>
+-->
 <body>
-<h2>Controle de Almoço 🍽️</h2>
+<h2>Controle de Cerveja </h2>
 <p>Aproxime o QR Code do convite.</p>
 
 <button id="btn-iniciar">📷 LIGAR CÂMERA</button>
@@ -26,88 +37,114 @@ button{padding:14px 20px;border:none;border-radius:8px;font-size:18px;color:#fff
 <div id="resultado"></div>
 
 <script>
-const URL_WEBHOOK_POST = "https://coldbloodedopossum-n8n.cloudfy.live/webhook/validar-qr";
-let html5Qr=null;
-let lendo=false;
+// ========================================================
+// 1. CONFIGURAÇÃO DO SUPABASE
+// Substitua pelas suas credenciais do painel do Supabase
+// (Project Settings -> API)
+// ========================================================
+const SUPABASE_URL = "https://xgbhzhkvfagpmyhmzwuk.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnYmh6aGt2ZmFncG15aG16d3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MjkyMTcsImV4cCI6MjA5NjEwNTIxN30.ROMcYDStFJVUlZzFVTEizu8xXTeQjPF0IZDJeRe4s_8";
 
-const resultado=document.getElementById("resultado");
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function mostrar(msg,classe){
- resultado.className=classe;
- resultado.style.display="block";
- resultado.innerText=msg;
+// ========================================================
+// 2. VARIÁVEIS E FUNÇÕES DE TELA
+// ========================================================
+let html5Qr = null;
+let lendo = false;
+const resultado = document.getElementById("resultado");
+
+function mostrar(msg, classe) {
+  resultado.className = classe;
+  resultado.style.display = "block";
+  resultado.innerText = msg;
 }
 
-async function iniciarCamera(){
- if(html5Qr) return;
- document.getElementById("btn-iniciar").style.display="none";
- document.getElementById("reader").style.display="block";
+async function iniciarCamera() {
+  if (html5Qr) return;
+  document.getElementById("btn-iniciar").style.display = "none";
+  document.getElementById("reader").style.display = "block";
 
- html5Qr=new Html5Qrcode("reader");
+  html5Qr = new Html5Qrcode("reader");
+  let cameraConfig = { facingMode: "environment" };
 
- let cameraConfig={facingMode:"environment"};
+  try {
+    const cams = await Html5Qrcode.getCameras();
+    if (cams.length) {
+      const traseira = cams.find(c => /back|rear|traseira|environment/i.test(c.label));
+      cameraConfig = traseira ? { deviceId: { exact: traseira.id } } : { deviceId: { exact: cams[cams.length - 1].id } };
+    }
+  } catch (e) {}
 
- try{
-   const cams=await Html5Qrcode.getCameras();
-   if(cams.length){
-      const traseira=cams.find(c=>/back|rear|traseira|environment/i.test(c.label));
-      cameraConfig=traseira?{deviceId:{exact:traseira.id}}:{deviceId:{exact:cams[cams.length-1].id}};
-   }
- }catch(e){}
-
- await html5Qr.start(
-   cameraConfig,
-   {fps:20,qrbox:{width:260,height:260},rememberLastUsedCamera:true},
-   onScan,
-   ()=>{}
- ).catch(e=>{
-   alert("Não foi possível abrir a câmera: "+e);
-   document.getElementById("btn-iniciar").style.display="block";
-   html5Qr=null;
- });
+  await html5Qr.start(
+    cameraConfig,
+    { fps: 20, qrbox: { width: 260, height: 260 }, rememberLastUsedCamera: true },
+    onScan,
+    () => {}
+  ).catch(e => {
+    alert("Não foi possível abrir a câmera: " + e);
+    document.getElementById("btn-iniciar").style.display = "block";
+    html5Qr = null;
+  });
 }
 
-async function onScan(text){
- if(lendo) return;
- lendo=true;
- try{await html5Qr.stop();}catch(e){}
- try{await html5Qr.clear();}catch(e){}
- html5Qr=null;
- document.getElementById("reader").style.display="none";
- enviar(text);
+async function onScan(text) {
+  if (lendo) return;
+  lendo = true;
+  try { await html5Qr.stop(); } catch (e) {}
+  try { await html5Qr.clear(); } catch (e) {}
+  html5Qr = null;
+  document.getElementById("reader").style.display = "none";
+  enviar(text);
 }
 
-async function enviar(codigo){
- mostrar("Validando crachá...","processando");
- try{
-   const r=await fetch(URL_WEBHOOK_POST,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({codigo:codigo})
-   });
-   if(!r.ok) throw new Error();
-   const data=await r.json();
+// ========================================================
+// 3. CONSULTA E GRAVAÇÃO DIRETA NO SUPABASE
+// ========================================================
+async function enviar(codigo) {
+  mostrar("Validando crachá...", "processando");
 
-   if(data.status==="liberado"||data.liberado===true){
-      mostrar("✅ ALMOÇO LIBERADO!","sucesso");
-      if(navigator.vibrate) navigator.vibrate(150);
-   }else{
-      mostrar("❌ BLOQUEADO: "+(data.mensagem||"Já almoçou"),"erro");
-      if(navigator.vibrate) navigator.vibrate([120,80,120]);
-   }
- }catch(e){
-    mostrar("🔺 Erro de comunicação com o sistema.","erro");
- }
- setTimeout(reiniciar,2000);
+  try {
+    // A) Consulta se o código de barras já foi cadastrado no dia
+    const { data: consulta, error: errConsulta } = await _supabase
+      .from('cerveja')
+      .select('id')
+      .ilike('codigo_barras', codigo.trim());
+
+    if (errConsulta) throw errConsulta;
+
+    // B) Se encontrou registro, significa que JÁ ALMOÇOU
+    if (consulta && consulta.length > 0) {
+      mostrar("❌ BLOQUEADO: Já almoçou!", "erro");
+      if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
+    } 
+    // C) Se NÃO encontrou, grava no banco e LIBERA
+    else {
+      const { error: errInsert } = await _supabase
+        .from('cerveja')
+        .insert([{ codigo_barras: codigo.trim() }]);
+
+      if (errInsert) throw errInsert;
+
+      mostrar("✅ CERVEJA LIBERADA!", "sucesso");
+      if (navigator.vibrate) navigator.vibrate(150);
+    }
+
+  } catch (e) {
+    console.error("Erro Supabase:", e);
+    mostrar("🔺 Erro de comunicação com o sistema.", "erro");
+  }
+
+  setTimeout(reiniciar, 2000);
 }
 
-function reiniciar(){
- lendo=false;
- resultado.style.display="none";
- iniciarCamera();
+function reiniciar() {
+  lendo = false;
+  resultado.style.display = "none";
+  iniciarCamera();
 }
 
-document.getElementById("btn-iniciar").addEventListener("click",iniciarCamera);
+document.getElementById("btn-iniciar").addEventListener("click", iniciarCamera);
 </script>
 </body>
 </html>
