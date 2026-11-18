@@ -21,15 +21,8 @@ button{padding:14px 20px;border:none;border-radius:8px;font-size:18px;color:#fff
 .processando{background:#fff3cd;color:#856404}
 </style>
 </head>
-<!-- Botão para ir para o Relatório -->
-<!--<div style="margin-top: 30px;">
-//  <a href="relatorio.html" target="_blank" style="color: #666; text-decoration: none; font-size: 14px;">
-    📊 Abrir Relatório / Fechamento
-  </a>
-//</div>
--->
 <body>
-<h2>Controle de Cerveja </h2>
+<h2>Controle de cerveja 🍽️</h2>
 <p>Aproxime o QR Code do convite.</p>
 
 <button id="btn-iniciar">📷 LIGAR CÂMERA</button>
@@ -115,7 +108,7 @@ async function enviar(codigo) {
 
     // B) Se encontrou registro, significa que JÁ ALMOÇOU
     if (consulta && consulta.length > 0) {
-      mostrar("❌ BLOQUEADO: Já almoçou!", "erro");
+      mostrar("❌ BLOQUEADO: Já bebeu!", "erro");
       if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
     } 
     // C) Se NÃO encontrou, grava no banco e LIBERA
